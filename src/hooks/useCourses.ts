@@ -251,20 +251,25 @@ export function useCourses(): UseCoursesResult {
         const response = await fetch("/api/courses");
         if (response.ok) {
           const data = await response.json();
-          if (data.length === 0) {
+          if (Array.isArray(data) && data.length === 0) {
             // No courses in sheet yet, use defaults and save them
             setCoursesState(defaultCourses);
             setPendingCourses(defaultCourses);
-          } else {
+          } else if (Array.isArray(data)) {
             // Parse checkpoints JSON from sheet data
             const parsed = data.map((row: any) => ({
               ...row,
               checkpoints: JSON.parse(row.checkpoints || "{}"),
             }));
             setCoursesState(parsed);
+          } else {
+            setError("Unexpected response format");
           }
+        } else if (response.status === 401) {
+          setError("Session expired. Please sign out and sign in again.");
         } else {
-          setError("Failed to load courses");
+          const data = await response.json().catch(() => ({}));
+          setError("Failed to load courses: " + (data.error || `Error ${response.status}`));
         }
       } catch (err) {
         setError("Failed to load courses");

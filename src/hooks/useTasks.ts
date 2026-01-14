@@ -314,21 +314,28 @@ export function useTasks(): UseTasksResult {
         const response = await fetch("/api/tasks");
         if (response.ok) {
           const data = await response.json();
-          if (data.length === 0) {
+          if (Array.isArray(data) && data.length === 0) {
             // No tasks in sheet yet, use defaults and save them
             setTasksState(defaultTasks);
             setPendingTasks(defaultTasks);
-          } else {
+          } else if (Array.isArray(data)) {
             setTasksState(data);
+          } else {
+            // Unexpected response format
+            setError("Unexpected response format");
           }
+        } else if (response.status === 401) {
+          setError("Session expired. Please sign out and sign in again.");
         } else if (response.status === 500) {
           // Sheet might not be configured yet
           const data = await response.json();
           if (data.error === "Sheet ID not configured") {
             setError("Google Sheet not configured. Please add GOOGLE_SHEET_ID to .env.local");
           } else {
-            setError("Failed to load tasks");
+            setError("Failed to load tasks: " + (data.error || "Unknown error"));
           }
+        } else {
+          setError(`Failed to load tasks (${response.status})`);
         }
       } catch (err) {
         setError("Failed to load tasks");
