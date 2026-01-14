@@ -31,3 +31,7 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Secrets (never commit)
+GCP_SA_KEY.txt
+*-key.json
