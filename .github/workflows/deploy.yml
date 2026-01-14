@@ -55,6 +55,9 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
+            --set-env-vars "AUTH_URL=${{ secrets.NEXTAUTH_URL }}" \
+            --set-env-vars "AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" \
+            --set-env-vars "AUTH_TRUST_HOST=true" \
             --set-env-vars "NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}" \
             --set-env-vars "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" \
             --set-env-vars "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" \
