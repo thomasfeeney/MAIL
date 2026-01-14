@@ -1,0 +1,13 @@
+import { auth } from "@/auth";
+
+export default auth((req) => {
+  // If not authenticated and not on auth pages, redirect to sign in
+  if (!req.auth && !req.nextUrl.pathname.startsWith("/api/auth")) {
+    const newUrl = new URL("/api/auth/signin", req.nextUrl.origin);
+    return Response.redirect(newUrl);
+  }
+});
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
