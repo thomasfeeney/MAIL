@@ -3,7 +3,7 @@ name: Deploy to Cloud Run
 on:
   push:
     branches:
-      - main
+      - deploy  # Disabled until new GCP project is ready. Change back to 'main' to re-enable.
 
 env:
   PROJECT_ID: feeneyhs
