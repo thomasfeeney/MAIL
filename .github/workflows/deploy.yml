@@ -55,6 +55,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
+            --service-account github-actions@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
             --set-env-vars "AUTH_URL=${{ secrets.NEXTAUTH_URL }}" \
             --set-env-vars "AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" \
             --set-env-vars "AUTH_TRUST_HOST=true" \
