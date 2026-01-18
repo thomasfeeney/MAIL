@@ -3,10 +3,10 @@ name: Deploy to Cloud Run
 on:
   push:
     branches:
-      - deploy  # Disabled until new GCP project is ready. Change back to 'main' to re-enable.
+      - main
 
 env:
-  PROJECT_ID: feeneyhs
+  PROJECT_ID: mail-dashboard-app
   REGION: us-central1
   SERVICE_NAME: mail-dashboard
   REPOSITORY: mail-dashboard
