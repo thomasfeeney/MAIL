@@ -4,7 +4,7 @@ A personal control panel and dashboard for managing the Master of Arts in Artifi
 
 ## Live Application
 
-**Production URL**: https://mail-dashboard-if3qtfj7zq-uc.a.run.app/
+**Production URL**: https://mail-dashboard-wsnuzte5sa-uc.a.run.app/
 
 ## Features
 
