@@ -34,9 +34,11 @@ interface SortableTaskProps {
   task: Task;
   onStatusChange: (id: string) => void;
   onEdit: (task: Task) => void;
+  isExpanded: boolean;
+  onToggleExpand: (id: string) => void;
 }
 
-function SortableTask({ task, onStatusChange, onEdit }: SortableTaskProps) {
+function SortableTask({ task, onStatusChange, onEdit, isExpanded, onToggleExpand }: SortableTaskProps) {
   const {
     attributes,
     listeners,
@@ -75,7 +77,22 @@ function SortableTask({ task, onStatusChange, onEdit }: SortableTaskProps) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <span className="text-sm text-gray-800">{task.title}</span>
+            <button
+              onClick={() => task.notes && onToggleExpand(task.id)}
+              className={`text-sm text-gray-800 text-left ${task.notes ? "cursor-pointer hover:text-gray-600" : ""}`}
+            >
+              {task.title}
+              {task.notes && (
+                <svg
+                  className={`w-3 h-3 inline-block ml-1 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </button>
             <button
               onClick={() => onEdit(task)}
               className="p-1 text-gray-400 hover:text-gray-600 shrink-0"
@@ -110,8 +127,87 @@ function SortableTask({ task, onStatusChange, onEdit }: SortableTaskProps) {
             )}
           </div>
 
-          {task.notes && (
-            <p className="text-xs text-gray-500 mt-2 line-clamp-2">{task.notes}</p>
+          {task.notes && isExpanded && (
+            <p className="text-xs text-gray-500 mt-2 whitespace-pre-wrap">{task.notes}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Non-draggable task component for launched/archived tasks
+interface ArchivedTaskProps {
+  task: Task;
+  onStatusChange: (id: string) => void;
+  onEdit: (task: Task) => void;
+  isExpanded: boolean;
+  onToggleExpand: (id: string) => void;
+}
+
+function ArchivedTask({ task, onStatusChange, onEdit, isExpanded, onToggleExpand }: ArchivedTaskProps) {
+  const status = statusConfig[task.status];
+
+  return (
+    <div className="bg-gray-50 rounded-lg p-3 mb-2 border border-gray-200">
+      <div className="flex items-start gap-2">
+        {/* Placeholder for alignment (no drag handle) */}
+        <div className="mt-0.5 p-1 w-6" />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <button
+              onClick={() => task.notes && onToggleExpand(task.id)}
+              className={`text-sm text-gray-600 text-left ${task.notes ? "cursor-pointer hover:text-gray-500" : ""}`}
+            >
+              {task.title}
+              {task.notes && (
+                <svg
+                  className={`w-3 h-3 inline-block ml-1 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => onEdit(task)}
+              className="p-1 text-gray-400 hover:text-gray-600 shrink-0"
+              title="Edit"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={() => onStatusChange(task.id)}
+              className={`text-xs px-2 py-0.5 rounded-full ${status.bg} ${status.text} hover:opacity-80 transition-opacity`}
+              title="Click to reactivate"
+            >
+              {status.label}
+            </button>
+            {task.link && (
+              <a
+                href={task.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-700"
+                title={task.link}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+          </div>
+
+          {task.notes && isExpanded && (
+            <p className="text-xs text-gray-500 mt-2 whitespace-pre-wrap">{task.notes}</p>
           )}
         </div>
       </div>
@@ -228,6 +324,36 @@ interface TaskPanelProps {
 export default function TaskPanel({ isCollapsed, onToggle }: TaskPanelProps) {
   const { tasks, setTasks, isLoading, error, isSaving } = useTasks();
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [allExpanded, setAllExpanded] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  // Split tasks into active and launched
+  const activeTasks = tasks.filter((t) => t.status !== "launched");
+  const launchedTasks = tasks.filter((t) => t.status === "launched");
+
+  const handleToggleExpand = (id: string) => {
+    setExpandedTasks((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleAll = () => {
+    if (allExpanded) {
+      setExpandedTasks(new Set());
+      setAllExpanded(false);
+    } else {
+      const tasksWithNotes = tasks.filter((t) => t.notes).map((t) => t.id);
+      setExpandedTasks(new Set(tasksWithNotes));
+      setAllExpanded(true);
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -239,9 +365,14 @@ export default function TaskPanel({ isCollapsed, onToggle }: TaskPanelProps) {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = tasks.findIndex((i) => i.id === active.id);
-      const newIndex = tasks.findIndex((i) => i.id === over.id);
-      setTasks(arrayMove(tasks, oldIndex, newIndex));
+      // Only reorder within active tasks
+      const oldIndex = activeTasks.findIndex((i) => i.id === active.id);
+      const newIndex = activeTasks.findIndex((i) => i.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reorderedActive = arrayMove(activeTasks, oldIndex, newIndex);
+        // Combine reordered active tasks with launched tasks
+        setTasks([...reorderedActive, ...launchedTasks]);
+      }
     }
   };
 
@@ -291,7 +422,7 @@ export default function TaskPanel({ isCollapsed, onToggle }: TaskPanelProps) {
           </svg>
         </button>
         <div className="writing-vertical text-xs text-gray-500 font-medium">
-          Tasks ({tasks.length})
+          Tasks ({activeTasks.length})
         </div>
       </div>
     );
@@ -301,7 +432,16 @@ export default function TaskPanel({ isCollapsed, onToggle }: TaskPanelProps) {
     <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col">
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-gray-800">Tasks ({tasks.length})</h2>
+          <h2 className="font-semibold text-gray-800">Tasks ({activeTasks.length})</h2>
+          <button
+            onClick={handleToggleAll}
+            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded"
+            title={allExpanded ? "Collapse all" : "Expand all"}
+          >
+            <svg className={`w-4 h-4 transition-transform ${allExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
           {isSaving && (
             <span className="text-xs text-gray-400">Saving...</span>
           )}
@@ -329,22 +469,59 @@ export default function TaskPanel({ isCollapsed, onToggle }: TaskPanelProps) {
             <span className="text-sm text-gray-400">Loading tasks...</span>
           </div>
         ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
-            {tasks.map((task) => (
-              <SortableTask
-                key={task.id}
-                task={task}
-                onStatusChange={handleStatusChange}
-                onEdit={setEditingTask}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
+        <>
+          {/* Active tasks (draggable) */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={activeTasks} strategy={verticalListSortingStrategy}>
+              {activeTasks.map((task) => (
+                <SortableTask
+                  key={task.id}
+                  task={task}
+                  onStatusChange={handleStatusChange}
+                  onEdit={setEditingTask}
+                  isExpanded={expandedTasks.has(task.id)}
+                  onToggleExpand={handleToggleExpand}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+
+          {/* Completed section divider */}
+          {launchedTasks.length > 0 && (
+            <>
+              <button
+                onClick={() => setShowCompleted(!showCompleted)}
+                className="w-full flex items-center gap-2 py-2 px-3 mt-2 mb-2 text-sm text-gray-500 hover:text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <svg
+                  className={`w-4 h-4 transition-transform ${showCompleted ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                <span>Completed ({launchedTasks.length})</span>
+              </button>
+
+              {/* Launched tasks (non-draggable) */}
+              {showCompleted && launchedTasks.map((task) => (
+                <ArchivedTask
+                  key={task.id}
+                  task={task}
+                  onStatusChange={handleStatusChange}
+                  onEdit={setEditingTask}
+                  isExpanded={expandedTasks.has(task.id)}
+                  onToggleExpand={handleToggleExpand}
+                />
+              ))}
+            </>
+          )}
+        </>
         )}
       </div>
 
@@ -358,6 +535,7 @@ export default function TaskPanel({ isCollapsed, onToggle }: TaskPanelProps) {
       </div>
 
       <TaskEditModal
+        key={editingTask?.id || "new"}
         task={editingTask}
         onClose={() => setEditingTask(null)}
         onSave={handleSaveTask}

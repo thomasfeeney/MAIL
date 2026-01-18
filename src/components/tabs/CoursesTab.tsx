@@ -6,21 +6,24 @@ import TimelineView from "./TimelineView";
 
 type ViewMode = "matrix" | "timeline";
 
-const checkpointLabels: Record<keyof CourseCheckpoints, { short: string; full: string }> = {
-  securedTeacher: { short: "Teacher", full: "Secure teacher & share resource doc" },
-  contractSigned: { short: "Contract", full: "Contract signed, countersigned by Kim, filed in MAIL SharePoint, Suzanne CC'd" },
+const checkpointLabels: Record<keyof CourseCheckpoints, { short: string; full: string; link?: string; links?: { url: string; label: string }[] }> = {
+  securedTeacher: { short: "Teacher", full: "Secure teacher & share resource doc", link: "https://docs.google.com/document/d/1sPF5f8LIbEJTSK4xv8hexb-foV6bwONa/edit?usp=sharing&ouid=102238583956326318387&rtpof=true&sd=true" },
+  contractSigned: { short: "Contract", full: "Ask Allison to initiate contract workflow", links: [
+    { url: "https://docs.google.com/document/d/1tBlrO5X8bXe-0pUUwcIrJ2_sEH-lrXoh/edit?usp=drive_link&ouid=102238583956326318387&rtpof=true&sd=true", label: "Contract template" },
+    { url: "https://drive.google.com/file/d/1HeNLjPqOta9ttihYUjEq7K-TBWP73Ocl/view?usp=drive_link", label: "Email template" },
+    { url: "https://uofstthomasmn.sharepoint.com/:f:/r/sites/mail/Shared%20Documents/01_Administration/Contracts%20%26%20Agreements/Course%20Development%20Agreements/Completed?csf=1&web=1&e=8kCKiR", label: "Completed" },
+  ] },
   inBannerCanvas: { short: "Banner", full: "Teacher in Banner and Canvas" },
   stelarTemplate: { short: "STELAR", full: "STELAR template in Canvas & connect to STELAR partner (6 months before)" },
-  bookAdoptions: { short: "Books", full: "Book adoptions submitted" },
-  shellComplete: { short: "Shell", full: "Shell complete to STELAR standards" },
-  materialsDocumented: { short: "Materials", full: "Pre-existing materials documented before paying stipend" },
+  bookAdoptions: { short: "Books", full: "Book adoptions submitted", link: "https://aip.bncollege.com/app/courselist/" },
+  shellComplete: { short: "Shell", full: "Shell complete to STELAR standards. At minimum: syllabus, learning outcomes, and assignments that build toward the outcomes related to each module." },
+  materialsDocumented: { short: "Materials", full: "Document listing Pre-Existing and Individualized Materials. File in SharePoint with the signed Agreement, copy stored in unpublished \"For Faculty\" module in the Canvas shell itself. If passing the course to another: make archived backup and add helpful notes in \"For Faculty\" section, then remove the individualized materials." },
   stipendPaid: { short: "Stipend", full: "Stipend paid" },
   videoRecorded: { short: "Video", full: "30s video recorded" },
-  feedbackCollected: { short: "Feedback", full: "Feedback collected & documented" },
+  feedbackCollected: { short: "Feedback", full: "Conversation. Written summary of what needs to change/update added to \"For Faculty\" module. Circulate Project Portfolio. Make contribution to knowledge clearing house and glossary on the Student Hub." },
 };
 
 const checkpointOrder: (keyof CourseCheckpoints)[] = [
-  "securedTeacher",
   "contractSigned",
   "inBannerCanvas",
   "stelarTemplate",
@@ -57,9 +60,119 @@ function CheckboxCell({ checked, onChange }: { checked: boolean; onChange: () =>
   );
 }
 
+interface FacultyCellProps {
+  faculty: string;
+  confirmed: boolean;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onSave: (faculty: string, confirmed: boolean) => void;
+  onCancel: () => void;
+}
+
+function FacultyCell({ faculty, confirmed, isEditing, onStartEdit, onSave, onCancel }: FacultyCellProps) {
+  const [editName, setEditName] = useState(faculty);
+  const [editConfirmed, setEditConfirmed] = useState(confirmed);
+
+  // Reset local state when entering edit mode
+  React.useEffect(() => {
+    if (isEditing) {
+      setEditName(faculty);
+      setEditConfirmed(confirmed);
+    }
+  }, [isEditing, faculty, confirmed]);
+
+  const handleSave = () => {
+    onSave(editName, editConfirmed);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      onCancel();
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <td className="py-2 px-2">
+        <div className="flex flex-col gap-2">
+          <input
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            autoFocus
+          />
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={editConfirmed}
+                onChange={(e) => setEditConfirmed(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+              />
+              Confirmed
+            </label>
+            <div className="flex gap-1">
+              <button
+                onClick={handleSave}
+                className="px-2 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Save
+              </button>
+              <button
+                onClick={onCancel}
+                className="px-2 py-0.5 text-xs text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </td>
+    );
+  }
+
+  return (
+    <td className="py-3 px-2">
+      <button
+        onClick={onStartEdit}
+        className={`text-left hover:underline ${
+          confirmed ? "text-gray-900" : "text-amber-600"
+        }`}
+        title={confirmed ? "Confirmed - click to edit" : "Tentative - click to edit"}
+      >
+        {faculty}
+      </button>
+    </td>
+  );
+}
+
 export default function CoursesTab() {
   const { courses, setCourses, isLoading, error, isSaving } = useCourses();
   const [viewMode, setViewMode] = useState<ViewMode>("matrix");
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+
+  const handleFacultySave = (courseId: string, faculty: string, confirmed: boolean) => {
+    setCourses(
+      courses.map((course) =>
+        course.id === courseId
+          ? {
+              ...course,
+              faculty,
+              facultyConfirmed: confirmed,
+              checkpoints: {
+                ...course.checkpoints,
+                securedTeacher: confirmed,
+              },
+            }
+          : course
+      )
+    );
+    setEditingCourseId(null);
+  };
 
   const toggleCheckpoint = (courseId: string, checkpoint: keyof CourseCheckpoints) => {
     setCourses(
@@ -75,12 +188,6 @@ export default function CoursesTab() {
           : course
       )
     );
-  };
-
-  const getProgress = (checkpoints: CourseCheckpoints) => {
-    const total = Object.keys(checkpoints).length;
-    const completed = Object.values(checkpoints).filter(Boolean).length;
-    return { completed, total, percent: Math.round((completed / total) * 100) };
   };
 
   if (isLoading) {
@@ -141,12 +248,11 @@ export default function CoursesTab() {
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-3 font-medium text-gray-700 sticky left-0 bg-white">
+              <th className="text-left py-3 px-2 font-medium text-gray-700 sticky left-0 bg-white">
                 Course
               </th>
-              <th className="text-left py-3 px-2 font-medium text-gray-700">Term</th>
+              <th className="text-left py-3 px-1 font-medium text-gray-700">Term</th>
               <th className="text-left py-3 px-2 font-medium text-gray-700">Faculty</th>
-              <th className="text-center py-3 px-2 font-medium text-gray-700">Progress</th>
               {checkpointOrder.map((key) => (
                 <th
                   key={key}
@@ -159,44 +265,28 @@ export default function CoursesTab() {
             </tr>
           </thead>
           <tbody>
-            {courses.map((course) => {
-              const progress = getProgress(course.checkpoints);
-              return (
+            {courses.map((course) => (
                 <tr
                   key={course.id}
                   className="border-b border-gray-100 hover:bg-gray-50"
                 >
-                  <td className="py-3 px-3 sticky left-0 bg-white">
+                  <td className="py-3 px-2 sticky left-0 bg-white">
                     <div className="font-medium text-gray-900">{course.code}</div>
-                    <div className="text-xs text-gray-500 max-w-[200px] truncate">
+                    <div className="text-xs text-gray-500 max-w-[150px] truncate">
                       {course.name}
                     </div>
                   </td>
-                  <td className="py-3 px-2 text-gray-600 whitespace-nowrap">
+                  <td className="py-3 px-1 text-gray-600 whitespace-nowrap">
                     {course.term}
                   </td>
-                  <td className="py-3 px-2">
-                    <span
-                      className={`${
-                        course.facultyConfirmed ? "text-gray-900" : "text-amber-600"
-                      }`}
-                    >
-                      {course.faculty}
-                    </span>
-                  </td>
-                  <td className="py-3 px-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-green-500 transition-all"
-                          style={{ width: `${progress.percent}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {progress.completed}/{progress.total}
-                      </span>
-                    </div>
-                  </td>
+                  <FacultyCell
+                    faculty={course.faculty}
+                    confirmed={course.facultyConfirmed}
+                    isEditing={editingCourseId === course.id}
+                    onStartEdit={() => setEditingCourseId(course.id)}
+                    onSave={(faculty, confirmed) => handleFacultySave(course.id, faculty, confirmed)}
+                    onCancel={() => setEditingCourseId(null)}
+                  />
                   {checkpointOrder.map((key) => (
                     <CheckboxCell
                       key={key}
@@ -205,21 +295,67 @@ export default function CoursesTab() {
                     />
                   ))}
                 </tr>
-              );
-            })}
+              ))}
           </tbody>
         </table>
       </div>
 
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
         <h3 className="font-medium text-gray-700 mb-3">Checkpoint Legend</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
-          {checkpointOrder.map((key, index) => (
-            <div key={key} className="flex items-start gap-2">
-              <span className="font-medium text-gray-800 w-6">{index + 1}.</span>
-              <span>{checkpointLabels[key].full}</span>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 md:grid-flow-col md:grid-rows-5 gap-x-8 gap-y-3 text-sm text-gray-600">
+          <div className="flex items-start">
+            <span className="font-semibold text-gray-800 w-20 shrink-0">Faculty:</span>
+            <span>
+              Secure teacher & share resource doc (click to edit; <span className="text-amber-600">orange</span> = tentative)
+              <a
+                href="https://docs.google.com/document/d/1sPF5f8LIbEJTSK4xv8hexb-foV6bwONa/edit?usp=sharing&ouid=102238583956326318387&rtpof=true&sd=true"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-1 text-blue-600 hover:text-blue-800"
+              >
+                <svg className="w-3.5 h-3.5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </span>
+          </div>
+          {checkpointOrder.map((key) => {
+            const label = checkpointLabels[key];
+            return (
+              <div key={key} className="flex items-start">
+                <span className="font-semibold text-gray-800 w-20 shrink-0">{label.short}:</span>
+                <span>
+                  {label.full}
+                  {label.link && (
+                    <a
+                      href={label.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <svg className="w-3.5 h-3.5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )}
+                  {label.links && label.links.map((linkItem, idx) => (
+                    <a
+                      key={idx}
+                      href={linkItem.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      {linkItem.label}
+                      <svg className="w-3.5 h-3.5 inline-block ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  ))}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
       </>

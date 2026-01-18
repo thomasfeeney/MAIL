@@ -159,6 +159,43 @@ export default function MarketingTab() {
         </div>
       </div>
 
+      {/* Info Sessions Section */}
+      <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h3 className="font-medium text-gray-700 mb-3">Info Sessions</h3>
+        <div className="grid grid-cols-3 gap-6">
+          <div>
+            <h4 className="text-sm font-medium text-gray-600 mb-2">Monthly Schedule</h4>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>1 per month (standard)</li>
+              <li>2 in January, August</li>
+              <li>3 in March/April, October/November</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-gray-600 mb-2">Session Times</h4>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>12:00 PM (default)</li>
+              <li>6:00 PM (evening option)</li>
+              <li>8:00 AM (international)</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-gray-600 mb-2">Spring In-Person Event</h4>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>Book room via 25Live (note ASC restrictions)</li>
+              <li>Order catering 2 months ahead</li>
+              <li>TommieLink, Digital Signage, Posters</li>
+              <li>CAS Social Media (Adam)</li>
+              <li>OneStThomas &amp; MAIL Sessions page</li>
+              <li>Canvas announcement + Padlet</li>
+              <li>Invite MAIL students to attend</li>
+              <li>Consider classroom visits (CAS courses)</li>
+              <li>UST Family Portal post (optional)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       {/* Contacts Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
