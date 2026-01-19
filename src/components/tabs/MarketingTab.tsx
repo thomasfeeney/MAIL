@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useContacts, Contact } from "@/hooks/useContacts";
+import { useCourses } from "@/hooks/useCourses";
 
 function ContactRow({
   contact,
@@ -128,6 +129,10 @@ export default function MarketingTab() {
     isSaving,
   } = useContacts();
 
+  const { courses } = useCourses();
+  const videosRecorded = courses.filter(c => c.checkpoints.videoRecorded).length;
+  const totalCourses = courses.length || 10;
+
   if (isLoading) {
     return (
       <div className="p-6 flex items-center justify-center h-64">
@@ -152,10 +157,10 @@ export default function MarketingTab() {
           Track progress of faculty introduction videos for the MAIL program page.
         </p>
         <div className="text-sm text-gray-600">
-          Videos recorded: <span className="font-medium">4 / 10</span>
+          Videos recorded: <span className="font-medium">{videosRecorded} / {totalCourses}</span>
         </div>
         <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden w-48">
-          <div className="h-full bg-blue-500" style={{ width: "40%" }} />
+          <div className="h-full bg-blue-500" style={{ width: `${(videosRecorded / totalCourses) * 100}%` }} />
         </div>
       </div>
 

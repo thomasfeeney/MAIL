@@ -2,9 +2,70 @@
 
 import React, { useState } from "react";
 import { useCourses, Course, CourseCheckpoints } from "@/hooks/useCourses";
-import TimelineView from "./TimelineView";
 
-type ViewMode = "matrix" | "timeline";
+// Term start dates (month, day) - year is determined by course term
+const termStartDates: Record<string, { month: number; day: number }> = {
+  "Fall A": { month: 8, day: 3 },    // September 3 (0-indexed month)
+  "Fall B": { month: 9, day: 23 },   // October 23
+  "Spring A": { month: 1, day: 2 },  // February 2
+  "Spring B": { month: 2, day: 23 }, // March 23
+  "Summer A": { month: 4, day: 28 }, // May 28
+  "Summer B": { month: 6, day: 14 }, // July 14
+};
+
+// Checkpoint deadlines as weeks relative to course start (negative = before)
+const checkpointOffsets: Record<keyof CourseCheckpoints, number> = {
+  securedTeacher: -52,     // Faculty: 1 year before
+  contractSigned: -30,     // Contract: 30 weeks before
+  inBannerCanvas: -28,     // Banner: 28 weeks before
+  stelarTemplate: -26,     // STELAR: 26 weeks before
+  bookAdoptions: -15,      // Books: 15 weeks before
+  shellComplete: -2,       // Shell: 2 weeks before
+  materialsDocumented: -1, // Materials: 1 week before
+  stipendPaid: 0,          // Stipend: at course start
+  videoRecorded: 8,        // Video: 8 weeks after
+  feedbackCollected: 10,   // Feedback: 10 weeks after
+};
+
+type UrgencyStatus = "default" | "warning" | "overdue";
+
+// Get the start date for a course based on its term
+function getCourseStartDate(term: string): Date {
+  const parts = term.split(" ");
+  const year = parseInt(parts[0]);
+  const termType = parts.slice(1).join(" "); // "Fall A", "Spring B", etc.
+
+  const dateInfo = termStartDates[termType];
+  if (!dateInfo) return new Date(); // fallback
+
+  // For Spring/Summer terms, use the year directly
+  // For Fall terms, use the year directly
+  return new Date(year, dateInfo.month, dateInfo.day);
+}
+
+// Calculate due date for a checkpoint
+function getCheckpointDueDate(courseStartDate: Date, checkpoint: keyof CourseCheckpoints): Date {
+  const offsetWeeks = checkpointOffsets[checkpoint];
+  const dueDate = new Date(courseStartDate);
+  dueDate.setDate(dueDate.getDate() + offsetWeeks * 7);
+  return dueDate;
+}
+
+// Determine urgency status for a checkpoint
+function getUrgencyStatus(
+  isChecked: boolean,
+  dueDate: Date,
+  now: Date = new Date()
+): UrgencyStatus {
+  if (isChecked) return "default";
+
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const threeWeeksFromNow = new Date(now.getTime() + 3 * msPerWeek);
+
+  if (dueDate < now) return "overdue";
+  if (dueDate <= threeWeeksFromNow) return "warning";
+  return "default";
+}
 
 const checkpointLabels: Record<keyof CourseCheckpoints, { short: string; full: string; link?: string; links?: { url: string; label: string }[] }> = {
   securedTeacher: { short: "Teacher", full: "Secure teacher & share resource doc", link: "https://docs.google.com/document/d/1sPF5f8LIbEJTSK4xv8hexb-foV6bwONa/edit?usp=sharing&ouid=102238583956326318387&rtpof=true&sd=true" },
@@ -35,16 +96,35 @@ const checkpointOrder: (keyof CourseCheckpoints)[] = [
   "feedbackCollected",
 ];
 
-function CheckboxCell({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+function CheckboxCell({
+  checked,
+  onChange,
+  urgency = "default"
+}: {
+  checked: boolean;
+  onChange: () => void;
+  urgency?: UrgencyStatus;
+}) {
+  // Determine cell and checkbox styling based on urgency
+  const getCellClass = () => {
+    if (checked) return "";
+    if (urgency === "overdue") return "bg-rose-200";
+    if (urgency === "warning") return "bg-amber-200";
+    return "";
+  };
+
+  const getCheckboxClass = () => {
+    if (checked) return "bg-green-500 border-green-500 text-white";
+    if (urgency === "overdue") return "border-rose-500 hover:border-rose-600 bg-rose-100";
+    if (urgency === "warning") return "border-amber-500 hover:border-amber-600 bg-amber-100";
+    return "border-gray-300 hover:border-gray-400";
+  };
+
   return (
-    <td className="px-2 py-2 text-center">
+    <td className={`px-2 py-2 text-center ${getCellClass()}`}>
       <button
         onClick={onChange}
-        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-          checked
-            ? "bg-green-500 border-green-500 text-white"
-            : "border-gray-300 hover:border-gray-400"
-        }`}
+        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${getCheckboxClass()}`}
       >
         {checked && (
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -152,7 +232,6 @@ function FacultyCell({ faculty, confirmed, isEditing, onStartEdit, onSave, onCan
 
 export default function CoursesTab() {
   const { courses, setCourses, isLoading, error, isSaving } = useCourses();
-  const [viewMode, setViewMode] = useState<ViewMode>("matrix");
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
 
   const handleFacultySave = (courseId: string, faculty: string, confirmed: boolean) => {
@@ -205,32 +284,8 @@ export default function CoursesTab() {
           <h2 className="text-xl font-semibold">Course Pipeline</h2>
           {isSaving && <span className="text-xs text-gray-400">Saving...</span>}
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500">
-            {courses.length} courses · 10 checkpoints each
-          </div>
-          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
-            <button
-              onClick={() => setViewMode("matrix")}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === "matrix"
-                  ? "bg-gray-100 text-gray-900"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Matrix
-            </button>
-            <button
-              onClick={() => setViewMode("timeline")}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === "timeline"
-                  ? "bg-gray-100 text-gray-900"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Timeline
-            </button>
-          </div>
+        <div className="text-sm text-gray-500">
+          {courses.length} courses · 10 checkpoints each
         </div>
       </div>
 
@@ -240,10 +295,6 @@ export default function CoursesTab() {
         </div>
       )}
 
-      {viewMode === "timeline" ? (
-        <TimelineView courses={courses} />
-      ) : (
-      <>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
@@ -287,13 +338,19 @@ export default function CoursesTab() {
                     onSave={(faculty, confirmed) => handleFacultySave(course.id, faculty, confirmed)}
                     onCancel={() => setEditingCourseId(null)}
                   />
-                  {checkpointOrder.map((key) => (
-                    <CheckboxCell
-                      key={key}
-                      checked={course.checkpoints[key]}
-                      onChange={() => toggleCheckpoint(course.id, key)}
-                    />
-                  ))}
+                  {checkpointOrder.map((key) => {
+                    const courseStartDate = getCourseStartDate(course.term);
+                    const dueDate = getCheckpointDueDate(courseStartDate, key);
+                    const urgency = getUrgencyStatus(course.checkpoints[key], dueDate);
+                    return (
+                      <CheckboxCell
+                        key={key}
+                        checked={course.checkpoints[key]}
+                        onChange={() => toggleCheckpoint(course.id, key)}
+                        urgency={urgency}
+                      />
+                    );
+                  })}
                 </tr>
               ))}
           </tbody>
@@ -358,8 +415,6 @@ export default function CoursesTab() {
           })}
         </div>
       </div>
-      </>
-      )}
     </div>
   );
 }
