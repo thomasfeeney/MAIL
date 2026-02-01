@@ -704,6 +704,108 @@ export async function ensureExpensesSheet(accessToken: string, sheetId: string):
   }
 }
 
+// Advisory Board functions
+export interface AdvisoryBoardRow {
+  id: string;
+  name: string;
+  email: string;
+  organization: string;
+  dateAdded: string;
+  notes: string;
+}
+
+const ADVISORY_BOARD_RANGE = "AdvisoryBoard!A:F";
+
+export async function getAdvisoryBoard(accessToken: string, sheetId: string): Promise<AdvisoryBoardRow[]> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: ADVISORY_BOARD_RANGE,
+  });
+
+  const rows = response.data.values || [];
+  if (rows.length <= 1) return [];
+
+  return rows.slice(1).map((row, index) => ({
+    id: row[0] || `board-${index}`,
+    name: row[1] || "",
+    email: row[2] || "",
+    organization: row[3] || "",
+    dateAdded: row[4] || "",
+    notes: row[5] || "",
+  }));
+}
+
+export async function saveAdvisoryBoard(accessToken: string, sheetId: string, members: AdvisoryBoardRow[]): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const values = [
+    ["id", "name", "email", "organization", "dateAdded", "notes"],
+    ...members.map((m) => [
+      m.id,
+      m.name,
+      m.email,
+      m.organization,
+      m.dateAdded,
+      m.notes || "",
+    ]),
+  ];
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: sheetId,
+    range: ADVISORY_BOARD_RANGE,
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: ADVISORY_BOARD_RANGE,
+    valueInputOption: "RAW",
+    requestBody: { values },
+  });
+}
+
+export async function ensureAdvisoryBoardSheet(accessToken: string, sheetId: string): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+
+    const boardSheet = spreadsheet.data.sheets?.find(
+      (s) => s.properties?.title === "AdvisoryBoard"
+    );
+
+    if (!boardSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: { title: "AdvisoryBoard" },
+              },
+            },
+          ],
+        },
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: "AdvisoryBoard!A1:F1",
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [["id", "name", "email", "organization", "dateAdded", "notes"]],
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error ensuring AdvisoryBoard sheet:", error);
+    throw error;
+  }
+}
+
 export async function ensureCoursesSheet(accessToken: string, sheetId: string): Promise<void> {
   const sheets = await getGoogleSheetsClient(accessToken);
 

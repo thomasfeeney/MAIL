@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useContacts, Contact } from "@/hooks/useContacts";
-import { useCourses } from "@/hooks/useCourses";
+
 
 function ContactRow({
   contact,
@@ -129,10 +129,6 @@ export default function MarketingTab() {
     isSaving,
   } = useContacts();
 
-  const { courses } = useCourses();
-  const videosRecorded = courses.filter(c => c.checkpoints.videoRecorded).length;
-  const totalCourses = courses.length || 10;
-
   if (isLoading) {
     return (
       <div className="p-6 flex items-center justify-center h-64">
@@ -148,20 +144,6 @@ export default function MarketingTab() {
         <p className="text-gray-600 text-sm">
           Video series planning and promotional content coordination.
         </p>
-      </div>
-
-      {/* Video Series Section */}
-      <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h3 className="font-medium text-gray-700 mb-2">30-Second Video Series</h3>
-        <p className="text-sm text-gray-500 mb-3">
-          Track progress of faculty introduction videos for the MAIL program page.
-        </p>
-        <div className="text-sm text-gray-600">
-          Videos recorded: <span className="font-medium">{videosRecorded} / {totalCourses}</span>
-        </div>
-        <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden w-48">
-          <div className="h-full bg-blue-500" style={{ width: `${(videosRecorded / totalCourses) * 100}%` }} />
-        </div>
       </div>
 
       {/* Info Sessions Section */}

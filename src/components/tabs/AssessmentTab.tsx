@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { useAdvisoryBoard, BoardMember } from "@/hooks/useAdvisoryBoard";
 
 interface Deadline {
   id: string;
@@ -227,28 +228,164 @@ export default function AssessmentTab() {
       </section>
 
       {/* Advisory Board */}
-      <section>
-        <h3 className="font-medium text-gray-700 mb-4">MAIL Advisory Board</h3>
-        <div className="p-4 border border-amber-200 rounded-lg bg-amber-50">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <p className="text-sm text-amber-800 font-medium mb-1">
-                Advisory Board Needed by Spring 2027
-              </p>
-              <p className="text-sm text-amber-700">
-                Establish an advisory board with industry professionals, alumni, and academic
-                partners to provide guidance on curriculum relevance and program direction.
-              </p>
-              <div className="mt-3">
-                <span className="text-xs text-amber-600">Status: Not Started</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <AdvisoryBoardSection />
     </div>
+  );
+}
+
+function EditableCell({
+  value,
+  onCommit,
+  placeholder = "",
+  type = "text",
+}: {
+  value: string;
+  onCommit: (val: string) => void;
+  placeholder?: string;
+  type?: "text" | "email" | "date";
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (editing) {
+    return (
+      <input
+        type={type}
+        className="border border-blue-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => { setEditing(false); onCommit(draft); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { setEditing(false); onCommit(draft); }
+          if (e.key === "Escape") { setEditing(false); setDraft(value); }
+        }}
+        autoFocus
+        placeholder={placeholder}
+      />
+    );
+  }
+
+  return (
+    <span
+      className="cursor-pointer hover:bg-gray-100 rounded px-2 py-1 inline-block min-w-[2rem]"
+      onClick={() => { setDraft(value); setEditing(true); }}
+      title="Click to edit"
+    >
+      {value || <span className="text-gray-300">{placeholder || "—"}</span>}
+    </span>
+  );
+}
+
+function AdvisoryBoardSection() {
+  const {
+    members,
+    addMember,
+    updateMember,
+    deleteMember,
+    isLoading,
+    error,
+    isSaving,
+  } = useAdvisoryBoard();
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <h3 className="font-medium text-gray-700">MAIL Advisory Board</h3>
+          {isSaving && <span className="text-xs text-gray-400">Saving...</span>}
+        </div>
+        <button
+          onClick={addMember}
+          className="text-sm text-blue-600 hover:text-blue-800"
+        >
+          + Add Member
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="text-gray-400 text-sm">Loading...</div>
+      ) : (
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left py-2 px-3 font-medium text-gray-500">Name</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-500">Email</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-500">Organization</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-500">Date Added</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-500">Notes</th>
+                <th className="w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {members.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-gray-400">
+                    No members yet. Click &quot;+ Add Member&quot; to get started.
+                  </td>
+                </tr>
+              ) : (
+                members.map((member) => (
+                  <tr key={member.id} className="hover:bg-gray-50">
+                    <td className="py-1.5 px-3">
+                      <EditableCell
+                        value={member.name}
+                        onCommit={(val) => updateMember(member.id, { name: val })}
+                        placeholder="Name"
+                      />
+                    </td>
+                    <td className="py-1.5 px-3">
+                      <EditableCell
+                        value={member.email}
+                        onCommit={(val) => updateMember(member.id, { email: val })}
+                        placeholder="Email"
+                        type="email"
+                      />
+                    </td>
+                    <td className="py-1.5 px-3">
+                      <EditableCell
+                        value={member.organization}
+                        onCommit={(val) => updateMember(member.id, { organization: val })}
+                        placeholder="Organization"
+                      />
+                    </td>
+                    <td className="py-1.5 px-3">
+                      <EditableCell
+                        value={member.dateAdded}
+                        onCommit={(val) => updateMember(member.id, { dateAdded: val })}
+                        placeholder="YYYY-MM-DD"
+                        type="date"
+                      />
+                    </td>
+                    <td className="py-1.5 px-3">
+                      <EditableCell
+                        value={member.notes}
+                        onCommit={(val) => updateMember(member.id, { notes: val })}
+                        placeholder="Notes"
+                      />
+                    </td>
+                    <td className="py-1.5 px-2">
+                      <button
+                        onClick={() => deleteMember(member.id)}
+                        className="text-gray-300 hover:text-red-500 text-xs"
+                        title="Delete"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
