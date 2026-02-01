@@ -287,6 +287,423 @@ export async function ensureContactsSheet(accessToken: string, sheetId: string):
   }
 }
 
+// Budget functions
+export interface BudgetRow {
+  id: string;
+  fiscalYear: string;
+  tuitionPerCredit: number;
+  totalEnrollment: number;
+  ustFacultyStaff: number;
+  scholarshipAllotted: number;
+  discretionary: number;
+  notes: string;
+}
+
+const BUDGET_RANGE = "Budget!A:H";
+
+export async function getBudgetItems(accessToken: string, sheetId: string): Promise<BudgetRow[]> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: BUDGET_RANGE,
+  });
+
+  const rows = response.data.values || [];
+  if (rows.length <= 1) return [];
+
+  return rows.slice(1).map((row, index) => ({
+    id: row[0] || `budget-${index}`,
+    fiscalYear: row[1] || "",
+    tuitionPerCredit: parseFloat(row[2]) || 0,
+    totalEnrollment: parseInt(row[3]) || 0,
+    ustFacultyStaff: parseInt(row[4]) || 0,
+    scholarshipAllotted: parseFloat(row[5]) || 0,
+    discretionary: parseFloat(row[6]) || 0,
+    notes: row[7] || "",
+  }));
+}
+
+export async function saveBudgetItems(accessToken: string, sheetId: string, items: BudgetRow[]): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const values = [
+    ["id", "fiscalYear", "tuitionPerCredit", "totalEnrollment", "ustFacultyStaff", "scholarshipAllotted", "discretionary", "notes"],
+    ...items.map((item) => [
+      item.id,
+      item.fiscalYear,
+      item.tuitionPerCredit.toString(),
+      item.totalEnrollment.toString(),
+      item.ustFacultyStaff.toString(),
+      item.scholarshipAllotted.toString(),
+      item.discretionary.toString(),
+      item.notes || "",
+    ]),
+  ];
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: sheetId,
+    range: BUDGET_RANGE,
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: BUDGET_RANGE,
+    valueInputOption: "RAW",
+    requestBody: { values },
+  });
+}
+
+export async function ensureBudgetSheet(accessToken: string, sheetId: string): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+
+    const budgetSheet = spreadsheet.data.sheets?.find(
+      (s) => s.properties?.title === "Budget"
+    );
+
+    if (!budgetSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: { title: "Budget" },
+              },
+            },
+          ],
+        },
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: "Budget!A1:H1",
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [["id", "fiscalYear", "tuitionPerCredit", "totalEnrollment", "ustFacultyStaff", "scholarshipAllotted", "discretionary", "notes"]],
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error ensuring Budget sheet:", error);
+    throw error;
+  }
+}
+
+// Enrollment functions
+export interface EnrollmentRow {
+  id: string;
+  fiscalYear: string;
+  term: string;
+  tuitionPaying: number;
+  onBenefits: number;
+  nonDegree: number;
+  electiveSeekers: number;
+}
+
+const ENROLLMENT_RANGE = "Enrollment!A:G";
+
+export async function getEnrollment(accessToken: string, sheetId: string): Promise<EnrollmentRow[]> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: ENROLLMENT_RANGE,
+  });
+
+  const rows = response.data.values || [];
+  if (rows.length <= 1) return [];
+
+  return rows.slice(1).map((row, index) => ({
+    id: row[0] || `enrollment-${index}`,
+    fiscalYear: row[1] || "",
+    term: row[2] || "",
+    tuitionPaying: parseInt(row[3]) || 0,
+    onBenefits: parseInt(row[4]) || 0,
+    nonDegree: parseInt(row[5]) || 0,
+    electiveSeekers: parseInt(row[6]) || 0,
+  }));
+}
+
+export async function saveEnrollment(accessToken: string, sheetId: string, rows: EnrollmentRow[]): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const values = [
+    ["id", "fiscalYear", "term", "tuitionPaying", "onBenefits", "nonDegree", "electiveSeekers"],
+    ...rows.map((r) => [
+      r.id,
+      r.fiscalYear,
+      r.term,
+      r.tuitionPaying.toString(),
+      r.onBenefits.toString(),
+      r.nonDegree.toString(),
+      r.electiveSeekers.toString(),
+    ]),
+  ];
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: sheetId,
+    range: ENROLLMENT_RANGE,
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: ENROLLMENT_RANGE,
+    valueInputOption: "RAW",
+    requestBody: { values },
+  });
+}
+
+export async function ensureEnrollmentSheet(accessToken: string, sheetId: string): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+
+    const enrollmentSheet = spreadsheet.data.sheets?.find(
+      (s) => s.properties?.title === "Enrollment"
+    );
+
+    if (!enrollmentSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: { title: "Enrollment" },
+              },
+            },
+          ],
+        },
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: "Enrollment!A1:G1",
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [["id", "fiscalYear", "term", "tuitionPaying", "onBenefits", "nonDegree", "electiveSeekers"]],
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error ensuring Enrollment sheet:", error);
+    throw error;
+  }
+}
+
+// Scholarship functions
+export interface ScholarshipRow {
+  id: string;
+  fiscalYear: string;
+  studentName: string;
+  term: string;
+  credits: number;
+  perCreditDiscount: number;
+  notes: string;
+}
+
+const SCHOLARSHIPS_RANGE = "Scholarships!A:G";
+
+export async function getScholarships(accessToken: string, sheetId: string): Promise<ScholarshipRow[]> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: SCHOLARSHIPS_RANGE,
+  });
+
+  const rows = response.data.values || [];
+  if (rows.length <= 1) return [];
+
+  return rows.slice(1).map((row, index) => ({
+    id: row[0] || `scholarship-${index}`,
+    fiscalYear: row[1] || "",
+    studentName: row[2] || "",
+    term: row[3] || "",
+    credits: parseFloat(row[4]) || 0,
+    perCreditDiscount: parseFloat(row[5]) || 0,
+    notes: row[6] || "",
+  }));
+}
+
+export async function saveScholarships(accessToken: string, sheetId: string, scholarships: ScholarshipRow[]): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const values = [
+    ["id", "fiscalYear", "studentName", "term", "credits", "perCreditDiscount", "notes"],
+    ...scholarships.map((s) => [
+      s.id,
+      s.fiscalYear,
+      s.studentName,
+      s.term,
+      s.credits.toString(),
+      s.perCreditDiscount.toString(),
+      s.notes || "",
+    ]),
+  ];
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: sheetId,
+    range: SCHOLARSHIPS_RANGE,
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: SCHOLARSHIPS_RANGE,
+    valueInputOption: "RAW",
+    requestBody: { values },
+  });
+}
+
+export async function ensureScholarshipsSheet(accessToken: string, sheetId: string): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+
+    const scholarshipsSheet = spreadsheet.data.sheets?.find(
+      (s) => s.properties?.title === "Scholarships"
+    );
+
+    if (!scholarshipsSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: { title: "Scholarships" },
+              },
+            },
+          ],
+        },
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: "Scholarships!A1:F1",
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [["id", "fiscalYear", "studentName", "term", "credits", "perCreditDiscount", "notes"]],
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error ensuring Scholarships sheet:", error);
+    throw error;
+  }
+}
+
+// Expenses functions
+export interface ExpenseRow {
+  id: string;
+  fiscalYear: string;
+  description: string;
+  amount: number;
+  notes: string;
+}
+
+const EXPENSES_RANGE = "Expenses!A:E";
+
+export async function getExpenses(accessToken: string, sheetId: string): Promise<ExpenseRow[]> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: EXPENSES_RANGE,
+  });
+
+  const rows = response.data.values || [];
+  if (rows.length <= 1) return [];
+
+  return rows.slice(1).map((row, index) => ({
+    id: row[0] || `expense-${index}`,
+    fiscalYear: row[1] || "",
+    description: row[2] || "",
+    amount: parseFloat(row[3]) || 0,
+    notes: row[4] || "",
+  }));
+}
+
+export async function saveExpenses(accessToken: string, sheetId: string, expenses: ExpenseRow[]): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const values = [
+    ["id", "fiscalYear", "description", "amount", "notes"],
+    ...expenses.map((e) => [
+      e.id,
+      e.fiscalYear,
+      e.description,
+      e.amount.toString(),
+      e.notes || "",
+    ]),
+  ];
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: sheetId,
+    range: EXPENSES_RANGE,
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: EXPENSES_RANGE,
+    valueInputOption: "RAW",
+    requestBody: { values },
+  });
+}
+
+export async function ensureExpensesSheet(accessToken: string, sheetId: string): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+
+    const expensesSheet = spreadsheet.data.sheets?.find(
+      (s) => s.properties?.title === "Expenses"
+    );
+
+    if (!expensesSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: { title: "Expenses" },
+              },
+            },
+          ],
+        },
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: "Expenses!A1:E1",
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [["id", "fiscalYear", "description", "amount", "notes"]],
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error ensuring Expenses sheet:", error);
+    throw error;
+  }
+}
+
 export async function ensureCoursesSheet(accessToken: string, sheetId: string): Promise<void> {
   const sheets = await getGoogleSheetsClient(accessToken);
 

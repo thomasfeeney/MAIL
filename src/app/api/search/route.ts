@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getTasks, getCourses, getContacts } from "@/lib/sheets";
+import { getTasks, getCourses, getContacts, getBudgetItems } from "@/lib/sheets";
 import { searchFiles } from "@/lib/drive";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
 
 export interface SearchResult {
   id: string;
-  type: "task" | "course" | "contact" | "file";
+  type: "task" | "course" | "contact" | "file" | "budget";
   title: string;
   subtitle?: string;
   url?: string;
@@ -31,11 +31,12 @@ export async function GET(request: NextRequest) {
 
   try {
     // Search in parallel
-    const [tasks, courses, contacts, files] = await Promise.all([
+    const [tasks, courses, contacts, files, budgetItems] = await Promise.all([
       getTasks(session.accessToken, SHEET_ID).catch(() => []),
       getCourses(session.accessToken, SHEET_ID).catch(() => []),
       getContacts(session.accessToken, SHEET_ID).catch(() => []),
       searchFiles(session.accessToken, query, 5).catch(() => []),
+      getBudgetItems(session.accessToken, SHEET_ID).catch(() => []),
     ]);
 
     // Search tasks
@@ -86,6 +87,21 @@ export async function GET(request: NextRequest) {
           type: "contact",
           title: contact.name,
           subtitle: contact.role,
+        });
+      }
+    });
+
+    // Search budget fiscal years
+    budgetItems.forEach((item) => {
+      if (
+        item.fiscalYear?.toLowerCase().includes(searchTerm) ||
+        item.notes?.toLowerCase().includes(searchTerm)
+      ) {
+        results.push({
+          id: `budget-${item.id}`,
+          type: "budget",
+          title: item.fiscalYear,
+          subtitle: item.notes || "Budget",
         });
       }
     });
