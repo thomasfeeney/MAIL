@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getTasks, getCourses, getContacts, getBudgetItems } from "@/lib/sheets";
+import { getTasks, getCourses, getContacts, getBudgetItems, getInterviews } from "@/lib/sheets";
 import { searchFiles } from "@/lib/drive";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
 
 export interface SearchResult {
   id: string;
-  type: "task" | "course" | "contact" | "file" | "budget";
+  type: "task" | "course" | "contact" | "file" | "budget" | "interview";
   title: string;
   subtitle?: string;
   url?: string;
@@ -31,12 +31,13 @@ export async function GET(request: NextRequest) {
 
   try {
     // Search in parallel
-    const [tasks, courses, contacts, files, budgetItems] = await Promise.all([
+    const [tasks, courses, contacts, files, budgetItems, interviews] = await Promise.all([
       getTasks(session.accessToken, SHEET_ID).catch(() => []),
       getCourses(session.accessToken, SHEET_ID).catch(() => []),
       getContacts(session.accessToken, SHEET_ID).catch(() => []),
       searchFiles(session.accessToken, query, 5).catch(() => []),
       getBudgetItems(session.accessToken, SHEET_ID).catch(() => []),
+      getInterviews(session.accessToken, SHEET_ID).catch(() => []),
     ]);
 
     // Search tasks
@@ -102,6 +103,23 @@ export async function GET(request: NextRequest) {
           type: "budget",
           title: item.fiscalYear,
           subtitle: item.notes || "Budget",
+        });
+      }
+    });
+
+    // Search interviews
+    interviews.forEach((interview) => {
+      if (
+        interview.guestName?.toLowerCase().includes(searchTerm) ||
+        interview.guestOrganization?.toLowerCase().includes(searchTerm) ||
+        interview.guestTitle?.toLowerCase().includes(searchTerm) ||
+        interview.notes?.toLowerCase().includes(searchTerm)
+      ) {
+        results.push({
+          id: `interview-${interview.id}`,
+          type: "interview",
+          title: interview.guestName || "Unnamed Guest",
+          subtitle: [interview.guestTitle, interview.guestOrganization].filter(Boolean).join(" · ") || interview.status,
         });
       }
     });

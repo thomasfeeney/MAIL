@@ -806,6 +806,216 @@ export async function ensureAdvisoryBoardSheet(accessToken: string, sheetId: str
   }
 }
 
+// Interview functions
+export interface InterviewRow {
+  id: string;
+  guestName: string;
+  guestTitle: string;
+  guestOrganization: string;
+  guestEmail: string;
+  guestLinkedIn: string;
+  status: 'prospect' | 'contacted' | 'booked' | 'recorded' | 'editing' | 'published';
+  notes: string;
+  scheduledDate: string;
+  recordedDate: string;
+  publishedDate: string;
+  publishedUrl: string;
+  referredBy: string;
+}
+
+const INTERVIEWS_RANGE = "Interviews!A:M";
+
+export async function getInterviews(accessToken: string, sheetId: string): Promise<InterviewRow[]> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: INTERVIEWS_RANGE,
+  });
+
+  const rows = response.data.values || [];
+  if (rows.length <= 1) return [];
+
+  return rows.slice(1).map((row, index) => ({
+    id: row[0] || `interview-${index}`,
+    guestName: row[1] || "",
+    guestTitle: row[2] || "",
+    guestOrganization: row[3] || "",
+    guestEmail: row[4] || "",
+    guestLinkedIn: row[5] || "",
+    status: (row[6] as InterviewRow["status"]) || "prospect",
+    notes: row[7] || "",
+    scheduledDate: row[8] || "",
+    recordedDate: row[9] || "",
+    publishedDate: row[10] || "",
+    publishedUrl: row[11] || "",
+    referredBy: row[12] || "",
+  }));
+}
+
+export async function saveInterviews(accessToken: string, sheetId: string, interviews: InterviewRow[]): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const values = [
+    ["id", "guestName", "guestTitle", "guestOrganization", "guestEmail", "guestLinkedIn", "status", "notes", "scheduledDate", "recordedDate", "publishedDate", "publishedUrl", "referredBy"],
+    ...interviews.map((i) => [
+      i.id,
+      i.guestName,
+      i.guestTitle,
+      i.guestOrganization,
+      i.guestEmail,
+      i.guestLinkedIn,
+      i.status,
+      i.notes || "",
+      i.scheduledDate || "",
+      i.recordedDate || "",
+      i.publishedDate || "",
+      i.publishedUrl || "",
+      i.referredBy || "",
+    ]),
+  ];
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: sheetId,
+    range: INTERVIEWS_RANGE,
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: INTERVIEWS_RANGE,
+    valueInputOption: "RAW",
+    requestBody: { values },
+  });
+}
+
+export async function ensureInterviewsSheet(accessToken: string, sheetId: string): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+
+    const interviewsSheet = spreadsheet.data.sheets?.find(
+      (s) => s.properties?.title === "Interviews"
+    );
+
+    if (!interviewsSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: { title: "Interviews" },
+              },
+            },
+          ],
+        },
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: "Interviews!A1:M1",
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [["id", "guestName", "guestTitle", "guestOrganization", "guestEmail", "guestLinkedIn", "status", "notes", "scheduledDate", "recordedDate", "publishedDate", "publishedUrl", "referredBy"]],
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error ensuring Interviews sheet:", error);
+    throw error;
+  }
+}
+
+// Interview Stage Notes functions
+export interface StageNoteRow {
+  stage: string;
+  notes: string;
+}
+
+const STAGE_NOTES_RANGE = "InterviewStageNotes!A:B";
+
+export async function getStageNotes(accessToken: string, sheetId: string): Promise<StageNoteRow[]> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: STAGE_NOTES_RANGE,
+  });
+
+  const rows = response.data.values || [];
+  if (rows.length <= 1) return [];
+
+  return rows.slice(1).map((row) => ({
+    stage: row[0] || "",
+    notes: row[1] || "",
+  }));
+}
+
+export async function saveStageNotes(accessToken: string, sheetId: string, stageNotes: StageNoteRow[]): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const values = [
+    ["stage", "notes"],
+    ...stageNotes.map((sn) => [sn.stage, sn.notes]),
+  ];
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: sheetId,
+    range: STAGE_NOTES_RANGE,
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: STAGE_NOTES_RANGE,
+    valueInputOption: "RAW",
+    requestBody: { values },
+  });
+}
+
+export async function ensureStageNotesSheet(accessToken: string, sheetId: string): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+
+    const stageNotesSheet = spreadsheet.data.sheets?.find(
+      (s) => s.properties?.title === "InterviewStageNotes"
+    );
+
+    if (!stageNotesSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: { title: "InterviewStageNotes" },
+              },
+            },
+          ],
+        },
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: "InterviewStageNotes!A1:B1",
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [["stage", "notes"]],
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error ensuring InterviewStageNotes sheet:", error);
+    throw error;
+  }
+}
+
 export async function ensureCoursesSheet(accessToken: string, sheetId: string): Promise<void> {
   const sheets = await getGoogleSheetsClient(accessToken);
 

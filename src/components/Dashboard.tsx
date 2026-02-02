@@ -20,6 +20,8 @@ export default function Dashboard() {
       course: "courses",
       contact: "marketing",
       file: "files",
+      budget: "budget",
+      interview: "marketing",
     };
 
     setActiveTab(tabMap[type]);
