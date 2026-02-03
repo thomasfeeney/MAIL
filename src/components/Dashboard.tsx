@@ -6,7 +6,7 @@ import TaskPanel from "./layout/TaskPanel";
 import TabContainer from "./layout/TabContainer";
 import { SearchResult } from "@/hooks/useSearch";
 
-type TabId = "courses" | "files" | "marketing" | "assessment" | "budget";
+type TabId = "courses" | "files" | "marketing" | "assessment" | "budget" | "students";
 
 export default function Dashboard() {
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
@@ -22,6 +22,7 @@ export default function Dashboard() {
       file: "files",
       budget: "budget",
       interview: "marketing",
+      student: "students",
     };
 
     setActiveTab(tabMap[type]);

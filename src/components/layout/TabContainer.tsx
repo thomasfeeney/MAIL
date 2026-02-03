@@ -6,8 +6,9 @@ import FilesTab from "@/components/tabs/FilesTab";
 import MarketingTab from "@/components/tabs/MarketingTab";
 import AssessmentTab from "@/components/tabs/AssessmentTab";
 import BudgetTab from "@/components/tabs/BudgetTab";
+import StudentsTab from "@/components/tabs/StudentsTab";
 
-export type TabId = "courses" | "files" | "marketing" | "assessment" | "budget";
+export type TabId = "courses" | "files" | "marketing" | "assessment" | "budget" | "students";
 
 interface Tab {
   id: TabId;
@@ -21,6 +22,7 @@ interface TabContainerProps {
 
 const tabs: Tab[] = [
   { id: "courses", label: "Courses" },
+  { id: "students", label: "Students" },
   { id: "files", label: "Files" },
   { id: "marketing", label: "Marketing" },
   { id: "assessment", label: "Assessment" },
@@ -29,6 +31,7 @@ const tabs: Tab[] = [
 
 const tabContent: Record<TabId, React.FC> = {
   courses: CoursesTab,
+  students: StudentsTab,
   files: FilesTab,
   marketing: MarketingTab,
   assessment: AssessmentTab,

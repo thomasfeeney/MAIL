@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getTasks, getCourses, getContacts, getBudgetItems, getInterviews } from "@/lib/sheets";
+import { getTasks, getCourses, getContacts, getBudgetItems, getInterviews, getStudents } from "@/lib/sheets";
 import { searchFiles } from "@/lib/drive";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
 
 export interface SearchResult {
   id: string;
-  type: "task" | "course" | "contact" | "file" | "budget" | "interview";
+  type: "task" | "course" | "contact" | "file" | "budget" | "interview" | "student";
   title: string;
   subtitle?: string;
   url?: string;
@@ -31,13 +31,14 @@ export async function GET(request: NextRequest) {
 
   try {
     // Search in parallel
-    const [tasks, courses, contacts, files, budgetItems, interviews] = await Promise.all([
+    const [tasks, courses, contacts, files, budgetItems, interviews, students] = await Promise.all([
       getTasks(session.accessToken, SHEET_ID).catch(() => []),
       getCourses(session.accessToken, SHEET_ID).catch(() => []),
       getContacts(session.accessToken, SHEET_ID).catch(() => []),
       searchFiles(session.accessToken, query, 5).catch(() => []),
       getBudgetItems(session.accessToken, SHEET_ID).catch(() => []),
       getInterviews(session.accessToken, SHEET_ID).catch(() => []),
+      getStudents(session.accessToken, SHEET_ID).catch(() => []),
     ]);
 
     // Search tasks
@@ -133,6 +134,23 @@ export async function GET(request: NextRequest) {
         subtitle: file.mimeType.includes("folder") ? "Folder" : "File",
         url: file.webViewLink || undefined,
       });
+    });
+
+    // Search students
+    students.forEach((student) => {
+      const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
+      if (
+        fullName.includes(searchTerm) ||
+        student.email?.toLowerCase().includes(searchTerm) ||
+        student.notes?.toLowerCase().includes(searchTerm)
+      ) {
+        results.push({
+          id: `student-${student.id}`,
+          type: "student",
+          title: `${student.firstName} ${student.lastName}`,
+          subtitle: `${student.status} · ${student.startTerm}`,
+        });
+      }
     });
 
     return NextResponse.json({ results: results.slice(0, 20) });

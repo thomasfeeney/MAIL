@@ -1016,6 +1016,120 @@ export async function ensureStageNotesSheet(accessToken: string, sheetId: string
   }
 }
 
+// Student functions
+export interface StudentRow {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  startTerm: string;
+  status: 'active' | 'paused' | 'probation' | 'withdrawn' | 'graduated';
+  benefitsEligible: boolean;
+  benefitsStartTerm: string;
+  coursesCompleted: string; // JSON array of course codes
+  notes: string;
+}
+
+const STUDENTS_RANGE = "Students!A:J";
+
+export async function getStudents(accessToken: string, sheetId: string): Promise<StudentRow[]> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: STUDENTS_RANGE,
+  });
+
+  const rows = response.data.values || [];
+  if (rows.length <= 1) return [];
+
+  return rows.slice(1).map((row, index) => ({
+    id: row[0] || `student-${index}`,
+    firstName: row[1] || "",
+    lastName: row[2] || "",
+    email: row[3] || "",
+    startTerm: row[4] || "",
+    status: (row[5] as StudentRow["status"]) || "active",
+    benefitsEligible: row[6] === "true",
+    benefitsStartTerm: row[7] || "",
+    coursesCompleted: row[8] || "[]",
+    notes: row[9] || "",
+  }));
+}
+
+export async function saveStudents(accessToken: string, sheetId: string, students: StudentRow[]): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  const values = [
+    ["id", "firstName", "lastName", "email", "startTerm", "status", "benefitsEligible", "benefitsStartTerm", "coursesCompleted", "notes"],
+    ...students.map((s) => [
+      s.id,
+      s.firstName,
+      s.lastName,
+      s.email,
+      s.startTerm,
+      s.status,
+      s.benefitsEligible.toString(),
+      s.benefitsStartTerm || "",
+      s.coursesCompleted,
+      s.notes || "",
+    ]),
+  ];
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: sheetId,
+    range: STUDENTS_RANGE,
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: STUDENTS_RANGE,
+    valueInputOption: "RAW",
+    requestBody: { values },
+  });
+}
+
+export async function ensureStudentsSheet(accessToken: string, sheetId: string): Promise<void> {
+  const sheets = await getGoogleSheetsClient(accessToken);
+
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+
+    const studentsSheet = spreadsheet.data.sheets?.find(
+      (s) => s.properties?.title === "Students"
+    );
+
+    if (!studentsSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: { title: "Students" },
+              },
+            },
+          ],
+        },
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: "Students!A1:J1",
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [["id", "firstName", "lastName", "email", "startTerm", "status", "benefitsEligible", "benefitsStartTerm", "coursesCompleted", "notes"]],
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error ensuring Students sheet:", error);
+    throw error;
+  }
+}
+
 export async function ensureCoursesSheet(accessToken: string, sheetId: string): Promise<void> {
   const sheets = await getGoogleSheetsClient(accessToken);
 

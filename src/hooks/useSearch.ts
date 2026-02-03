@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 
 export interface SearchResult {
   id: string;
-  type: "task" | "course" | "contact" | "file" | "budget" | "interview";
+  type: "task" | "course" | "contact" | "file" | "budget" | "interview" | "student";
   title: string;
   subtitle?: string;
   url?: string;
