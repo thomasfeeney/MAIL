@@ -16,30 +16,57 @@ interface SLO {
   number: number;
   title: string;
   description: string;
-  assessmentPlan: string;
+  year: string;
+  sources: string;
+  criteria: string;
 }
 
+// Final plan: Assessment/MAIL Assessment Proposal.html (adopted October 2026
+// after Advisory Board review).
 const studentLearningOutcomes: SLO[] = [
   {
     id: "slo-1",
     number: 1,
     title: "Understand AI Principles",
     description: "Understand principles and long-term trends that explain AI",
-    assessmentPlan: "Assessed through foundational course assignments and comprehensive exams",
+    year: "Spring 2027",
+    sources: "MAIL 503 (Foundations/History) or MAIL 557 (AI Literacy; Core Concepts only)",
+    criteria: "Core Concepts; Historical Trajectory (scored on MAIL 503 artifacts)",
   },
   {
     id: "slo-2",
     number: 2,
     title: "Ethical Integration",
     description: "Integrate AI ethically with a broad range of human concerns",
-    assessmentPlan: "Assessed through ethics case studies and portfolio reflections",
+    year: "Spring 2028",
+    sources: "MAIL 523 (Ethics), MAIL 593 (Alignment), or MAIL 643 (Law)",
+    criteria: "Ethical Identification; Integration",
   },
   {
     id: "slo-3",
     number: 3,
     title: "Lead AI Projects",
     description: "Lead AI projects of genuine and enduring value",
-    assessmentPlan: "Assessed through capstone project and leadership practicum",
+    year: "Spring 2029",
+    sources:
+      "MAIL 607/619 (Opportunity/Implementation), MAIL 659 (Institutional Change*), or MAIL 677 (Leadership in Practice)",
+    criteria: "Strategic Alignment; Implementation Viability",
+  },
+];
+
+const planElements: { label: string; value: string }[] = [
+  { label: "Cycle", value: "One SLO per year for three years, then an off year (4-year cycle; Spring 2030 off, repeats 2031)" },
+  { label: "Artifact", value: "Portfolio pieces from graduating students" },
+  { label: "Assessors", value: "Program Director + volunteers from the Advisory Board" },
+  {
+    label: "Process",
+    value:
+      "Norming session before each assessment (how to evaluate gaps, practice on previously scored artifacts, paradigm examples); single assessor per artifact thereafter",
+  },
+  { label: "Scale", value: "Meets / Approaches / Does Not Meet Expectations" },
+  {
+    label: "Target",
+    value: "On each rubric criterion, no more than 20% of assessed students score Does Not Meet Expectations",
   },
 ];
 
@@ -57,16 +84,18 @@ const deadlines: Deadline[] = [
   {
     id: "d-1",
     title: "ULAC Assessment Reflection",
-    date: "2026-10-01",
-    description: "Submit assessment reflection report to ULAC committee",
-    status: getDeadlineStatus("2026-10-01"),
+    date: "2026-10-05",
+    description:
+      "Submitted: Q3.5c of the 2025-26 annual unit report (sent to Bock and Ditty for Oct 5); Q3.5a form submitted Sep 30 with the draft plan",
+    status: "completed",
   },
   {
     id: "d-2",
-    title: "First SLO Assessment",
-    date: "2027-04-15",
-    description: "Complete first round of Student Learning Outcomes assessment",
-    status: getDeadlineStatus("2027-04-15"),
+    title: "Assessment Plan Adopted",
+    date: "2026-10-09",
+    description:
+      "Draft reviewed by the Advisory Board (Distelzweig, Moon) and revised into the final plan",
+    status: "completed",
   },
   {
     id: "d-3",
@@ -74,6 +103,14 @@ const deadlines: Deadline[] = [
     date: "2027-03-01",
     description: "Convene MAIL Advisory Board for program review",
     status: getDeadlineStatus("2027-03-01"),
+  },
+  {
+    id: "d-4",
+    title: "First SLO Assessment (SLO 1)",
+    date: "2027-04-15",
+    description:
+      "Norming session, then score SLO 1 portfolio pieces from the first graduating cohort",
+    status: getDeadlineStatus("2027-04-15"),
   },
 ];
 
@@ -161,6 +198,23 @@ export default function AssessmentTab() {
         </div>
       </section>
 
+      {/* Assessment Plan */}
+      <section>
+        <h3 className="font-medium text-gray-700 mb-4">Assessment Plan</h3>
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <tbody className="divide-y divide-gray-100">
+              {planElements.map((el) => (
+                <tr key={el.label}>
+                  <td className="py-2 px-3 font-medium text-gray-700 w-28 align-top">{el.label}</td>
+                  <td className="py-2 px-3 text-gray-600">{el.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {/* Student Learning Outcomes */}
       <section>
         <h3 className="font-medium text-gray-700 mb-4">Student Learning Outcomes (SLOs)</h3>
@@ -178,16 +232,27 @@ export default function AssessmentTab() {
                   {slo.number}
                 </span>
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-1">{slo.title}</h4>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-medium text-gray-900">{slo.title}</h4>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                      {slo.year}
+                    </span>
+                  </div>
                   <p className="text-sm text-gray-700 mb-2">{slo.description}</p>
                   <p className="text-xs text-gray-500">
-                    <span className="font-medium">Assessment:</span> {slo.assessmentPlan}
+                    <span className="font-medium">Portfolio sources:</span> {slo.sources}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    <span className="font-medium">Rubric criteria:</span> {slo.criteria}
                   </p>
                 </div>
               </div>
             </div>
           ))}
         </div>
+        <p className="text-xs text-gray-400 mt-3">
+          * Name change from &ldquo;AI and Communication&rdquo; pending, October 9, 2026.
+        </p>
       </section>
 
       {/* HLC Requirements */}
