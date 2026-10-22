@@ -21,8 +21,8 @@ const checkpointOffsets: Record<keyof CourseCheckpoints, number> = {
   stelarTemplate: -26,     // STELAR: 26 weeks before
   bookAdoptions: -15,      // Books: 15 weeks before
   shellComplete: -2,       // Shell: 2 weeks before
-  materialsDocumented: -1, // Materials: 1 week before
   stipendPaid: 0,          // Stipend: at course start
+  materialsDocumented: 6,  // Materials: week 7 of the course
   videoRecorded: 8,        // Video: 8 weeks after
   feedbackCollected: 10,   // Feedback: 10 weeks after
 };
@@ -78,7 +78,7 @@ const checkpointLabels: Record<keyof CourseCheckpoints, { short: string; full: s
   stelarTemplate: { short: "STELAR", full: "STELAR template in Canvas & connect to STELAR partner (6 months before)" },
   bookAdoptions: { short: "Books", full: "Book adoptions submitted", link: "https://aip.bncollege.com/app/courselist/" },
   shellComplete: { short: "Shell", full: "Shell complete to STELAR standards. At minimum: syllabus, learning outcomes, and assignments that build toward the outcomes related to each module." },
-  materialsDocumented: { short: "Materials", full: "Document listing Pre-Existing and Individualized Materials. File in SharePoint with the signed Agreement, copy stored in unpublished \"For Faculty\" module in the Canvas shell itself. If passing the course to another: make archived backup and add helpful notes in \"For Faculty\" section, then remove the individualized materials." },
+  materialsDocumented: { short: "Materials", full: "List Pre-Existing and Individualized Materials during week 7, through STELAR's process. Lists are filed in the course's unpublished \"For Faculty Only - Canvas Resources\" module, with a backup copy in SharePoint with the signed Agreement. If passing the course to another: make archived backup and add helpful notes in \"For Faculty\" section, then remove the individualized materials." },
   stipendPaid: { short: "Stipend", full: "Stipend paid" },
   videoRecorded: { short: "Video", full: "30s video recorded" },
   feedbackCollected: { short: "Feedback", full: "Conversation. Written summary of what needs to change/update added to \"For Faculty\" module. Circulate Project Portfolio. Make contribution to knowledge clearing house and glossary on the Student Hub." },
@@ -90,8 +90,8 @@ const checkpointOrder: (keyof CourseCheckpoints)[] = [
   "stelarTemplate",
   "bookAdoptions",
   "shellComplete",
-  "materialsDocumented",
   "stipendPaid",
+  "materialsDocumented",
   "videoRecorded",
   "feedbackCollected",
 ];
